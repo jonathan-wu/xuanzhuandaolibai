@@ -81,11 +81,11 @@ unsigned char function_1(void)
   {
     timeCycle();
    
-    if (E2_pulseCnt>30)
+    if (E2_pulseCnt>48)
     {
       Motor_config(-400);
     }
-    else if(E2_pulseCnt<-30)
+    else if(E2_pulseCnt<-48)
     {
       Motor_config(400);
     }     
@@ -106,11 +106,14 @@ unsigned char function_2(void)
     while(nowTime+100>TimeBase);
     Motor_config(-200);
     while(nowTime+1000>TimeBase)
+    {
+      timeCycle();
       if (!E1_absPulseCnt)
       {
         Motor_config(0);        
         return 0;
       }
+    }
     Motor_config(0);
     return 1;
 }
@@ -168,19 +171,19 @@ unsigned char function_3(void)
         if (speedSign>0)
         {
           if (E2_pulseCnt<133)
-            Motor_config(speedSign*400+speed/3-50);
+            Motor_config(speedSign*400+speed/3+10);
           else
           {
-            Motor_config((speedSign*400+speed/3)+E2_pulseCnt/10);
+            Motor_config((speedSign*400+speed/3)+100);
           }
         }
         else
         {
           if (E2_pulseCnt>-133)
-            Motor_config(speedSign*400+speed/3+50);
+            Motor_config(speedSign*400+speed/3+10);
           else
           {
-            Motor_config((speedSign*400+speed/3)+E2_pulseCnt/10);
+            Motor_config((speedSign*400+speed/3)-100);
           }
         }
 
@@ -280,9 +283,9 @@ unsigned char function_4(void)
         if (abs(speed)>900)
           speed=speedSign*900;
         if (speedSign>0)
-          Motor_config(speedSign*400+speed/3+5);
+          Motor_config(speedSign*400+speed/3);
         else
-          Motor_config(speedSign*400+speed/3+5);
+          Motor_config(speedSign*400+speed/3);
 
         
 //        if (RP.myOutput>0)
@@ -307,10 +310,8 @@ unsigned char function_4(void)
 
 unsigned char function_6(void)
 {
-  E2_lastPulseCnt = E2_pulseCnt;
   while(1)
   {
-
 //¼ÆËã¾ø¶Ô½Ç¶È    
     E1_lastAbsPulseCnt=E1_absPulseCnt;
     E1_absPulseCnt=  E1_pulseCnt%4000;
@@ -334,36 +335,42 @@ unsigned char function_6(void)
  //       UART_sendlong(UCA1,E2_pulseCnt+1000000L);
  //       UART_sendstr(UCA1," ");
 //      }
-      if (!UCA1_GET_CHAR(&command))
+      if ((!UCA1_GET_CHAR(&command))||(abs(E2_pulseCnt)>10000))
       {
         Motor_config(0);
         while(1);
       }
     }      
-    if ((abs(E1_absPulseCnt-RP.mySetpoint)<500)&&(abs(E1_absPulseCnt)>2))
+
+    if ((abs(E1_absPulseCnt)<500)&&(abs(E1_absPulseCnt)>2))
     {
       RP.inAuto=1;
 //      PID_setMode(&RP,AUTOMATIC);
       if(!PID_compute(&RP))
       {
         speed+=RP.myOutput;
-        speed-=E2_interval*3;
+        speed-=E2_interval;
         if (speed>0)
           speedSign = 1;
         else if (speed<0)
           speedSign = -1;
         else
           speedSign = 0;
-        if (abs(speed)>1200)
-          speed=speedSign*1200;
+        if (abs(speed)>900)
+          speed=speedSign*900;
         if (speedSign>0)
-        {
-            Motor_config(speedSign*400+speed/3);
-        }
+          Motor_config(speedSign*400+speed/3+10);
         else
-        {
-            Motor_config(speedSign*400+speed/3);
-        }
+          Motor_config(speedSign*400+speed/3+10);
+
+        
+//        if (RP.myOutput>0)
+//          Motor_config(450+RP.myOutput/3-E2_pulseCnt/2);
+//        else if (RP.myOutput<-0)
+//          Motor_config(-450+RP.myOutput/3-E2_pulseCnt/2);
+//        else
+//          Motor_config(0);
+   
       }
     }
     else
@@ -372,7 +379,8 @@ unsigned char function_6(void)
       speedSign=0;      
       Motor_config(0);
       RP.inAuto=0;
-    }              
+//      PID_setMode(&RP,MANUAL);
+    }        
   }
 }
 
@@ -422,7 +430,7 @@ void main( void )
 //  Clear_Screen();
 //  TFT_Menu_StartMenu();  
   
-  while(function_1());
+  while(function_3());
   
   /*
   
